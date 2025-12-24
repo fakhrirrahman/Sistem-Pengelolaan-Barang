@@ -9,7 +9,7 @@ class OrderHistoryTab extends StatelessWidget {
     final firestore = FirebaseFirestore.instance;
 
     return StreamBuilder<QuerySnapshot>(
-      stream: firestore.collection('orders').orderBy('date', descending: true).snapshots(),
+      stream: firestore.collection('orders').orderBy('createdAt', descending: true).snapshots(),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
           return Center(child: Text(snapshot.error.toString()));
@@ -27,14 +27,18 @@ class OrderHistoryTab extends StatelessWidget {
             final doc = orders[index];
             final data = doc.data() as Map<String, dynamic>;
 
-            final date = (data['date'] as Timestamp).toDate();
+            final date = (data['createdAt'] as Timestamp).toDate();
+
+            final items = data['items'] as List<dynamic>;
+            final firstItem = items.isNotEmpty ? items[0]['name'] : 'No items';
+            final itemCount = items.length;
 
             return Card(
               margin: const EdgeInsets.all(8),
               child: ListTile(
-                title: Text('Order ${doc.id}'),
+                title: Text('Order ${doc.id.substring(0, 8)}'),
                 subtitle: Text(
-                  'Total: Rp${data['total']}\nTanggal: ${date.toLocal().toString().split(' ')[0]}',
+                  'User: ${data['userEmail']}\nBarang: $firstItem${itemCount > 1 ? ' +${itemCount - 1} lainnya' : ''}\nTotal: Rp${data['totalAmount']}\nTanggal: ${date.toLocal().toString().split(' ')[0]}',
                 ),
                 onTap: () => _showDetail(context, data),
               ),

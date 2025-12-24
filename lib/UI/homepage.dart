@@ -7,6 +7,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../Controllers/auth_service.dart';
 import '../Models/food_product.dart';
 import 'cart_page.dart';
+import 'order_history_page.dart';
 
 class HomePage extends StatefulWidget {
   HomePage({super.key});
@@ -98,6 +99,15 @@ class _HomePageState extends State<HomePage> {
                     },
                   ),
                 ),
+              );
+            },
+          ),
+          IconButton(
+            icon: Icon(Icons.history),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const OrderHistoryPage()),
               );
             },
           ),
