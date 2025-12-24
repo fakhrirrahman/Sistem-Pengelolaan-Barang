@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:flutter/foundation.dart';
 import '../../cloudinary_uploader.dart';
 
 class StockManagementTab extends StatefulWidget {
@@ -26,10 +25,6 @@ class _StockManagementTabState extends State<StockManagementTab> {
   }
 
   Future<String?> _uploadImage() async {
-    if (kIsWeb) {
-      // Skip upload di web untuk development
-      return 'https://via.placeholder.com/150'; // Placeholder URL
-    }
     if (_selectedImage == null) return null;
     final uploader = FirebaseStorageUploader();
     return await uploader.uploadImage(_selectedImage!);
@@ -126,7 +121,14 @@ class _StockManagementTabState extends State<StockManagementTab> {
                 // Upload gambar jika ada
                 String? imageUrl;
                 if (_selectedImage != null) {
-                  imageUrl = await _uploadImage();
+                  try {
+                    imageUrl = await _uploadImage();
+                  } catch (e) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Gagal upload gambar: $e')),
+                    );
+                    return;
+                  }
                   if (imageUrl == null) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('Gagal upload gambar')),

@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_storage/firebase_storage.dart';
-import 'package:flutter/foundation.dart';
 
 import 'firebase_options.dart';
 import 'UI/login.dart';
@@ -16,10 +14,6 @@ void main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-
-  if (kIsWeb) {
-    await FirebaseStorage.instance.useStorageEmulator('localhost', 9199);
-  }
 
   runApp(const MyApp());
 }

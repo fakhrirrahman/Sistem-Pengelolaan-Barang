@@ -1,25 +1,31 @@
+import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
-import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/foundation.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:image_picker/image_picker.dart';
 
 class FirebaseStorageUploader {
-  final FirebaseStorage _storage = FirebaseStorage.instance;
-
   Future<String?> uploadImage(XFile imageFile) async {
     try {
       final bytes = await imageFile.readAsBytes();
-      final filename = 'products/${DateTime.now().millisecondsSinceEpoch}_${imageFile.name}';
-      final ref = _storage.ref().child(filename);
-
-      final uploadTask = ref.putData(bytes);
-      final snapshot = await uploadTask.whenComplete(() => null);
-
-      final downloadUrl = await snapshot.ref.getDownloadURL();
-      print("Upload success: $downloadUrl");
-      return downloadUrl;
+      if (kIsWeb) {
+        // Untuk web, return base64
+        final base64String = base64Encode(bytes);
+        print("Base64 for web: ${base64String.substring(0, 50)}...");
+        return 'data:image/jpeg;base64,$base64String'; // Data URL
+      } else {
+        // Untuk mobile, simpan file lokal
+        final dir = await getApplicationDocumentsDirectory();
+        final filename = 'products_${DateTime.now().millisecondsSinceEpoch}_${imageFile.name}';
+        final file = File('${dir.path}/$filename');
+        await file.writeAsBytes(bytes);
+        print("Saved locally: ${file.path}");
+        return file.path;
+      }
     } catch (e) {
-      print("Upload failed: $e");
-      return null;
+      print("Save failed: $e");
+      throw e;
     }
   }
 }
