@@ -19,12 +19,24 @@ class FoodProduct {
     this.isAvailable = true,
   });
 
+  factory FoodProduct.fromMap(Map<String, dynamic> map, String id) {
+    return FoodProduct(
+      id: id,
+      name: map['name'] ?? '',
+      imagePath: map['imagePath'] ?? '',
+      category: map['category'] ?? '',
+      price: (map['price'] is int) ? (map['price'] as int).toDouble() : (map['price'] ?? 0.0),
+      description: map['description'] ?? '',
+      isAvailable: map['isAvailable'] ?? true,
+    );
+  }
+
   static List<FoodProduct> getSampleProducts() {
     return [
       FoodProduct(
         id: '1',
         name: 'Nasi Goreng',
-        imagePath: 'assets/images/nasi_goreng.jpg',
+        imagePath: 'assets/images/beras.jpg',
         category: 'Makanan Utama',
         price: 15000,
         description: 'Nasi goreng spesial dengan telur dan ayam.',
@@ -33,7 +45,7 @@ class FoodProduct {
       FoodProduct(
         id: '2',
         name: 'Ayam Bakar',
-        imagePath: 'assets/images/ayam_bakar.jpg',
+        imagePath: 'assets/images/daging_sapi.jpg',
         category: 'Makanan Utama',
         price: 20000,
         description: 'Ayam bakar dengan bumbu rempah.',
@@ -42,7 +54,7 @@ class FoodProduct {
       FoodProduct(
         id: '3',
         name: 'Sayur Bayam',
-        imagePath: 'assets/images/sayur_bayam.jpg',
+        imagePath: 'assets/images/wortel.jpg',
         category: 'Sayuran',
         price: 5000,
         description: 'Sayur bayam segar.',
@@ -51,7 +63,7 @@ class FoodProduct {
       FoodProduct(
         id: '4',
         name: 'Jus Jeruk',
-        imagePath: 'assets/images/jus_jeruk.jpg',
+        imagePath: 'assets/images/cabai.jpg',
         category: 'Minuman',
         price: 8000,
         description: 'Jus jeruk segar tanpa gula.',

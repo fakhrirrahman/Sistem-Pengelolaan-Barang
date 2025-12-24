@@ -1,26 +1,24 @@
-import 'dart:io';
-import 'package:http/http.dart' as http;
+import 'dart:typed_data';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:image_picker/image_picker.dart';
 
-class CloudinaryUploader {
-  final String cloudName = 'ISI_DENGAN_CLOUD_NAME_ANDA';
+class FirebaseStorageUploader {
+  final FirebaseStorage _storage = FirebaseStorage.instance;
 
-  Future<String?> uploadImage(File imageFile) async {
-    final url = Uri.parse("https://api.cloudinary.com/v1_1/$cloudName/image/upload");
-    final uploadPreset = "unsigned_preset"; // akan dibuat di langkah 5
+  Future<String?> uploadImage(XFile imageFile) async {
+    try {
+      final bytes = await imageFile.readAsBytes();
+      final filename = 'products/${DateTime.now().millisecondsSinceEpoch}_${imageFile.name}';
+      final ref = _storage.ref().child(filename);
 
-    var request = http.MultipartRequest('POST', url)
-      ..fields['upload_preset'] = uploadPreset
-      ..files.add(await http.MultipartFile.fromPath('file', imageFile.path));
+      final uploadTask = ref.putData(bytes);
+      final snapshot = await uploadTask.whenComplete(() => null);
 
-    var response = await request.send();
-
-    if (response.statusCode == 200) {
-      final res = await http.Response.fromStream(response);
-      final data = res.body;
-      print("Upload success: $data");
-      return data;
-    } else {
-      print("Upload failed: ${response.statusCode}");
+      final downloadUrl = await snapshot.ref.getDownloadURL();
+      print("Upload success: $downloadUrl");
+      return downloadUrl;
+    } catch (e) {
+      print("Upload failed: $e");
       return null;
     }
   }

@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:flutter/foundation.dart';
+import '../../cloudinary_uploader.dart';
 
 class StockManagementTab extends StatefulWidget {
   const StockManagementTab({super.key});
@@ -10,6 +13,27 @@ class StockManagementTab extends StatefulWidget {
 
 class _StockManagementTabState extends State<StockManagementTab> {
   final firestore = FirebaseFirestore.instance;
+  final ImagePicker _picker = ImagePicker();
+  XFile? _selectedImage;
+
+  Future<void> _pickImage() async {
+    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+    if (image != null) {
+      setState(() {
+        _selectedImage = image;
+      });
+    }
+  }
+
+  Future<String?> _uploadImage() async {
+    if (kIsWeb) {
+      // Skip upload di web untuk development
+      return 'https://via.placeholder.com/150'; // Placeholder URL
+    }
+    if (_selectedImage == null) return null;
+    final uploader = FirebaseStorageUploader();
+    return await uploader.uploadImage(_selectedImage!);
+  }
 
   void _showProductDialog({DocumentSnapshot? doc}) {
     final isEditing = doc != null;
@@ -18,82 +42,129 @@ class _StockManagementTabState extends State<StockManagementTab> {
     final priceController = TextEditingController(text: data['price']?.toString() ?? '');
     final stockController = TextEditingController(text: data['stock']?.toString() ?? '');
     final descriptionController = TextEditingController(text: data['description'] ?? '');
+    final categoryController = TextEditingController(text: data['category'] ?? '');
+    bool isAvailable = data['isAvailable'] ?? true;
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(isEditing ? 'Edit Produk' : 'Tambah Produk'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: nameController,
-                decoration: const InputDecoration(labelText: 'Nama Produk'),
-              ),
-              TextField(
-                controller: priceController,
-                decoration: const InputDecoration(labelText: 'Harga'),
-                keyboardType: TextInputType.number,
-              ),
-              TextField(
-                controller: stockController,
-                decoration: const InputDecoration(labelText: 'Stok'),
-                keyboardType: TextInputType.number,
-              ),
-              TextField(
-                controller: descriptionController,
-                decoration: const InputDecoration(labelText: 'Deskripsi'),
-                maxLines: 3,
-              ),
-            ],
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: Text(isEditing ? 'Edit Produk' : 'Tambah Produk'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nameController,
+                  decoration: const InputDecoration(labelText: 'Nama Produk'),
+                ),
+                TextField(
+                  controller: priceController,
+                  decoration: const InputDecoration(labelText: 'Harga'),
+                  keyboardType: TextInputType.number,
+                ),
+                TextField(
+                  controller: stockController,
+                  decoration: const InputDecoration(labelText: 'Stok'),
+                  keyboardType: TextInputType.number,
+                ),
+                TextField(
+                  controller: descriptionController,
+                  decoration: const InputDecoration(labelText: 'Deskripsi'),
+                  maxLines: 3,
+                ),
+                TextField(
+                  controller: categoryController,
+                  decoration: const InputDecoration(labelText: 'Kategori'),
+                ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        _selectedImage != null ? 'Gambar dipilih: ${_selectedImage!.name}' : 'Belum ada gambar dipilih',
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.image),
+                      onPressed: _pickImage,
+                      tooltip: 'Pilih gambar dari galeri',
+                    ),
+                  ],
+                ),
+                CheckboxListTile(
+                  title: const Text('Tersedia'),
+                  value: isAvailable,
+                  onChanged: (value) {
+                    setState(() {
+                      isAvailable = value ?? true;
+                    });
+                  },
+                ),
+              ],
+            ),
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Batal'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              final name = nameController.text.trim();
-              final price = int.tryParse(priceController.text) ?? 0;
-              final stock = int.tryParse(stockController.text) ?? 0;
-              final description = descriptionController.text.trim();
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Batal'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final name = nameController.text.trim();
+                final price = int.tryParse(priceController.text) ?? 0;
+                final stock = int.tryParse(stockController.text) ?? 0;
+                final description = descriptionController.text.trim();
+                final category = categoryController.text.trim();
 
-              if (name.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Nama produk tidak boleh kosong')),
-                );
-                return;
-              }
-
-              final productData = {
-                'name': name,
-                'price': price,
-                'stock': stock,
-                'description': description,
-              };
-
-              try {
-                if (isEditing) {
-                  await firestore.collection('products').doc(doc.id).update(productData);
-                } else {
-                  await firestore.collection('products').add(productData);
+                if (name.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Nama produk tidak boleh kosong')),
+                  );
+                  return;
                 }
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(isEditing ? 'Produk diperbarui' : 'Produk ditambahkan')),
-                );
-              } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Error: $e')),
-                );
-              }
-            },
-            child: Text(isEditing ? 'Update' : 'Tambah'),
-          ),
-        ],
+
+                // Upload gambar jika ada
+                String? imageUrl;
+                if (_selectedImage != null) {
+                  imageUrl = await _uploadImage();
+                  if (imageUrl == null) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Gagal upload gambar')),
+                    );
+                    return;
+                  }
+                }
+
+                final productData = {
+                  'name': name,
+                  'price': price,
+                  'stock': stock,
+                  'description': description,
+                  'category': category,
+                  'imagePath': imageUrl ?? data['imagePath'] ?? '',  // Gunakan URL baru atau yang lama
+                  'isAvailable': isAvailable,
+                };
+
+                try {
+                  if (isEditing) {
+                    await firestore.collection('products').doc(doc.id).update(productData);
+                  } else {
+                    await firestore.collection('products').add(productData);
+                  }
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(isEditing ? 'Produk diperbarui' : 'Produk ditambahkan')),
+                  );
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Error: $e')),
+                  );
+                }
+              },
+              child: Text(isEditing ? 'Update' : 'Tambah'),
+            ),
+          ],
+        ),
       ),
     );
   }
