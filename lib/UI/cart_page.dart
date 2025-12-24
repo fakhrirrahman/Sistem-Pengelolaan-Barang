@@ -1,6 +1,9 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../Models/food_product.dart';
+import '../Models/order.dart';
 
 class CartPage extends StatefulWidget {
   final List<CartItem> items;
@@ -20,6 +23,49 @@ class _CartPageState extends State<CartPage> {
   void initState() {
     super.initState();
     cartItems = List.from(widget.items);
+  }
+
+  void checkout() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Harap login terlebih dahulu')),
+      );
+      return;
+    }
+
+    final total = cartItems.fold(0.0, (sum, item) => sum + (item.product.price * item.quantity));
+    final orderItems = cartItems.map((item) => OrderItem(
+      productId: item.product.id,
+      name: item.product.name,
+      price: item.product.price,
+      quantity: item.quantity,
+      total: item.product.price * item.quantity,
+    )).toList();
+
+    final order = AppOrder(
+      id: '', // akan diisi oleh Firestore
+      userId: user.uid,
+      userEmail: user.email ?? '',
+      items: orderItems,
+      totalAmount: total,
+      status: 'pending',
+    );
+
+    try {
+      await FirebaseFirestore.instance.collection('orders').add(order.toMap());
+      setState(() {
+        cartItems.clear();
+      });
+      widget.onUpdateCart(cartItems);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Checkout berhasil! Pesanan telah dibuat.')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Gagal checkout: $e')),
+      );
+    }
   }
 
   void updateQuantity(int index, int delta) {
@@ -57,7 +103,7 @@ class _CartPageState extends State<CartPage> {
                 );
               },
             ),
-      bottomNavigationBar: _CartSummary(items: cartItems, accentColor: widget.accentColor),
+      bottomNavigationBar: _CartSummary(items: cartItems, accentColor: widget.accentColor, onCheckout: checkout),
     );
   }
 }
@@ -177,7 +223,8 @@ class _CartTile extends StatelessWidget {
 class _CartSummary extends StatelessWidget {
   final List<CartItem> items;
   final Color accentColor;
-  const _CartSummary({required this.items, required this.accentColor});
+  final VoidCallback onCheckout;
+  const _CartSummary({required this.items, required this.accentColor, required this.onCheckout});
 
   @override
   Widget build(BuildContext context) {
@@ -207,7 +254,7 @@ class _CartSummary extends StatelessWidget {
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: accentColor, foregroundColor: Colors.white),
-            onPressed: items.isEmpty ? null : () {},
+            onPressed: items.isEmpty ? null : onCheckout,
             child: const Text('Checkout'),
           )
         ],
