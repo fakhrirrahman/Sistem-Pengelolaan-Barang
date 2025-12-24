@@ -62,12 +62,21 @@ class AuthService {
     }
   }
 
-  static Future<void> register(String email, String password, BuildContext context) async {
+  static Future<void> register(String email, String password, String name, BuildContext context) async {
     try {
-      await _auth.createUserWithEmailAndPassword(
+      UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
+
+      // Simpan data user ke Firestore
+      await FirebaseFirestore.instance.collection('users').doc(userCredential.user!.uid).set({
+        'email': email,
+        'name': name,
+        'role': 'user', // Default role
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('✅ Registrasi berhasil!'),

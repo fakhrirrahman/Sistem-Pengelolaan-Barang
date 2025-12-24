@@ -162,6 +162,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     AuthService.register(
       emailController.text.trim(),
       passwordController.text.trim(),
+      nameController.text.trim(),
       context,
     );
   }
