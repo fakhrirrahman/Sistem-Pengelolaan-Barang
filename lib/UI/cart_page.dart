@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import '../Models/food_product.dart';
 
@@ -84,18 +85,62 @@ class _CartTile extends StatelessWidget {
       child: ListTile(
         leading: ClipRRect(
           borderRadius: BorderRadius.circular(8),
-          child: Image.asset(
-            item.product.imagePath,
-            width: 56,
-            height: 56,
-            fit: BoxFit.cover,
-            errorBuilder: (context, error, stackTrace) => Container(
-              width: 56,
-              height: 56,
-              color: Colors.grey.shade300,
-              child: Icon(Icons.image_not_supported, color: Colors.grey.shade600),
-            ),
-          ),
+          child: item.product.imagePath.isNotEmpty
+              ? (item.product.imagePath.startsWith('http') || item.product.imagePath.startsWith('data:'))
+                  ? Image.network(
+                      item.product.imagePath,
+                      width: 56,
+                      height: 56,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          width: 56,
+                          height: 56,
+                          color: Colors.grey.shade300,
+                          child: Icon(
+                            Icons.image_not_supported,
+                            size: 28,
+                            color: Colors.grey.shade600,
+                          ),
+                        );
+                      },
+                    )
+                  : Image.file(
+                      File(item.product.imagePath),
+                      width: 56,
+                      height: 56,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          width: 56,
+                          height: 56,
+                          color: Colors.grey.shade300,
+                          child: Icon(
+                            Icons.image_not_supported,
+                            size: 28,
+                            color: Colors.grey.shade600,
+                          ),
+                        );
+                      },
+                    )
+              : Image.asset(
+                  'assets/images/beras.jpg',
+                  width: 56,
+                  height: 56,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      width: 56,
+                      height: 56,
+                      color: Colors.grey.shade300,
+                      child: Icon(
+                        Icons.image_not_supported,
+                        size: 28,
+                        color: Colors.grey.shade600,
+                      ),
+                    );
+                  },
+                ),
         ),
         title: Text(
           item.product.name,
