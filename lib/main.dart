@@ -4,7 +4,7 @@ import 'firebase_options.dart';
 import 'UI/login.dart';
 import 'UI/register.dart';
 import 'UI/test_homepage.dart';
-import 'seed/firebase_seeder.dart';
+import 'UI/dashboard.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -13,8 +13,8 @@ void main() async {
   );
   
   // JALANKAN SEKALI — SETELAH ITU COMMENT / HAPUS
-  await FirebaseSeeder.createAdmin();
-  await FirebaseSeeder.createUser();
+  // await FirebaseSeeder.createAdmin();
+  // await FirebaseSeeder.createUser();
   
   runApp(const MyApp());
 }
@@ -35,6 +35,7 @@ class MyApp extends StatelessWidget {
         '/login': (context) => const LoginScreen(),
         '/home': (context) => TestHomePage(),
         '/register': (context) => const RegisterScreen(),
+        '/dashboard': (context) => const DashboardScreen(),
       },
     );
   }
