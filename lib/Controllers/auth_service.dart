@@ -93,6 +93,32 @@ class AuthService {
     }
   }
 
+  static Future<String> getCurrentUserRole() async {
+    User? user = _auth.currentUser;
+    if (user == null) return 'user';
+
+    String email = user.email ?? '';
+    String uid = user.uid;
+
+    // Hardcode role berdasarkan email untuk test
+    if (email == 'admin@admin.com') {
+      return 'admin';
+    } else if (email == 'user@user.com') {
+      return 'user';
+    } else {
+      // Jika email lain, coba ambil dari Firestore
+      try {
+        DocumentSnapshot userDoc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+        if (userDoc.exists) {
+          return userDoc['role'] ?? 'user';
+        }
+      } catch (e) {
+        print('Gagal ambil role: $e, default ke user');
+      }
+    }
+    return 'user';
+  }
+
   static Future<void> logout(BuildContext context) async {
     await _auth.signOut();
     Navigator.pushReplacementNamed(context, '/login');

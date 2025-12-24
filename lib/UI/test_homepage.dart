@@ -1,7 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../Controllers/auth_service.dart';
+import '../Controllers/auth_controller.dart';
 import '../Models/food_product.dart';
 import 'cart_page.dart';
 
