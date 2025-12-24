@@ -44,19 +44,21 @@ class OrderHistoryPage extends StatelessWidget {
               return AppOrder.fromMap(doc.data() as Map<String, dynamic>, doc.id);
             }).toList();
 
-          orders.sort((a, b) => (b.createdAt ?? DateTime.now()).compareTo(a.createdAt ?? DateTime.now()));
+            orders.sort((a, b) => (b.createdAt ?? DateTime.now()).compareTo(a.createdAt ?? DateTime.now()));
+
+            if (orders.isEmpty) {
+              return const Center(child: Text('Belum ada pesanan'));
             }
 
             return ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: orders.length,
-            itemBuilder: (context, index) {
-              final order = orders[index];
-              return Card(
-                margin: const EdgeInsets.only(bottom: 12),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              itemCount: orders.length,
+              itemBuilder: (context, index) {
+                final order = orders[index];
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -90,6 +92,8 @@ class OrderHistoryPage extends StatelessWidget {
                         if (order.createdAt != null)
                           Text('Tanggal: ${order.createdAt!.toLocal().toString().split(' ')[0]}'),
                         const SizedBox(height: 8),
+                        Text('Produk: ${order.items.map((item) => item.name).join(', ')}'),
+                        const SizedBox(height: 8),
                         const Text('Items:', style: TextStyle(fontWeight: FontWeight.w600)),
                         const SizedBox(height: 4),
                         ...order.items.map((item) => Padding(
@@ -99,10 +103,9 @@ class OrderHistoryPage extends StatelessWidget {
                       ],
                     ),
                   ),
-                ),
-              );
-            },
-          );
+                );
+              },
+            );
           } catch (e) {
             print('Error parsing orders: $e'); // Debug log
             return Center(child: Text('Error parsing data: $e'));
