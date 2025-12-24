@@ -4,12 +4,17 @@ import 'firebase_options.dart';
 import 'UI/login.dart';
 import 'UI/register.dart';
 import 'UI/test_homepage.dart';
+import 'seed/firebase_seeder.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+  
+  // JALANKAN SEKALI — SETELAH ITU COMMENT / HAPUS
+  await FirebaseSeeder.createAdmin();
+  await FirebaseSeeder.createUser();
   
   runApp(const MyApp());
 }
