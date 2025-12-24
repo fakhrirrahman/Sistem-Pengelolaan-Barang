@@ -1,7 +1,6 @@
 // lib/Models/order.dart
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'food_product.dart';
 
 class OrderItem {
   final String productId;
