@@ -18,7 +18,7 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   final User? user = FirebaseAuth.instance.currentUser;
   final Color darkBlue = Color(0xFF0D47A1);
-  List<FoodProduct> cartItems = [];
+  List<CartItem> cartItems = [];
 
   void logout(BuildContext context) async {
     await AuthService.logout(context);
@@ -26,7 +26,15 @@ class _HomePageState extends State<HomePage> {
 
   void addToCart(FoodProduct product) {
     setState(() {
-      cartItems.add(product);
+      final existingItem = cartItems.firstWhere(
+        (item) => item.product.id == product.id,
+        orElse: () => CartItem(product: product, quantity: 0),
+      );
+      if (existingItem.quantity == 0) {
+        cartItems.add(CartItem(product: product));
+      } else {
+        existingItem.quantity++;
+      }
     });
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -47,12 +55,48 @@ class _HomePageState extends State<HomePage> {
         elevation: 0,
         actions: [
           IconButton(
-            icon: Icon(Icons.shopping_cart),
+            icon: Stack(
+              children: [
+                Icon(Icons.shopping_cart),
+                if (cartItems.isNotEmpty)
+                  Positioned(
+                    right: 0,
+                    top: 0,
+                    child: Container(
+                      padding: EdgeInsets.all(2),
+                      decoration: BoxDecoration(
+                        color: Colors.red,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      constraints: BoxConstraints(
+                        minWidth: 16,
+                        minHeight: 16,
+                      ),
+                      child: Text(
+                        '${cartItems.length}',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
             onPressed: () {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => CartPage(items: cartItems),
+                  builder: (context) => CartPage(
+                    items: cartItems,
+                    onUpdateCart: (updatedItems) {
+                      setState(() {
+                        cartItems = updatedItems;
+                      });
+                    },
+                  ),
                 ),
               );
             },

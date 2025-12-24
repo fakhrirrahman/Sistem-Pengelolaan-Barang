@@ -1,5 +1,12 @@
 // lib/Models/food_product.dart
 
+class CartItem {
+  final FoodProduct product;
+  int quantity;
+
+  CartItem({required this.product, this.quantity = 1});
+}
+
 class FoodProduct {
   final String id;
   final String name;

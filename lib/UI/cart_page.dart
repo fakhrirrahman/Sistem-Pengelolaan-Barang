@@ -1,56 +1,71 @@
 import 'package:flutter/material.dart';
 import '../Models/food_product.dart';
 
-class CartPage extends StatelessWidget {
-  final List<FoodProduct> items;
+class CartPage extends StatefulWidget {
+  final List<CartItem> items;
   final Color accentColor;
+  final Function(List<CartItem>) onUpdateCart;
 
-  const CartPage({super.key, required this.items, this.accentColor = const Color(0xFF0D47A1)});
+  const CartPage({super.key, required this.items, this.accentColor = const Color(0xFF0D47A1), required this.onUpdateCart});
+
+  @override
+  _CartPageState createState() => _CartPageState();
+}
+
+class _CartPageState extends State<CartPage> {
+  late List<CartItem> cartItems;
+
+  @override
+  void initState() {
+    super.initState();
+    cartItems = List.from(widget.items);
+  }
+
+  void updateQuantity(int index, int delta) {
+    setState(() {
+      cartItems[index].quantity += delta;
+      if (cartItems[index].quantity <= 0) {
+        cartItems.removeAt(index);
+      }
+    });
+    widget.onUpdateCart(cartItems);
+  }
 
   @override
   Widget build(BuildContext context) {
-    final Map<String, _CartEntry> grouped = {};
-    for (final product in items) {
-      grouped.update(
-        product.id,
-        (entry) => _CartEntry(product: entry.product, quantity: entry.quantity + 1),
-        ifAbsent: () => _CartEntry(product: product, quantity: 1),
-      );
-    }
-    final entries = grouped.values.toList();
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Keranjang'),
-        backgroundColor: accentColor,
+        backgroundColor: widget.accentColor,
         foregroundColor: Colors.white,
         elevation: 0,
       ),
-      body: entries.isEmpty
+      body: cartItems.isEmpty
           ? const _EmptyCart()
           : ListView.separated(
               padding: const EdgeInsets.all(16),
-              itemCount: entries.length,
+              itemCount: cartItems.length,
               separatorBuilder: (_, __) => const SizedBox(height: 12),
               itemBuilder: (context, index) {
-                final e = entries[index];
-                return _CartTile(entry: e);
+                final item = cartItems[index];
+                return _CartTile(
+                  item: item,
+                  onIncrease: () => updateQuantity(index, 1),
+                  onDecrease: () => updateQuantity(index, -1),
+                );
               },
             ),
-      bottomNavigationBar: _CartSummary(entries: entries, accentColor: accentColor),
+      bottomNavigationBar: _CartSummary(items: cartItems, accentColor: widget.accentColor),
     );
   }
 }
 
-class _CartEntry {
-  final FoodProduct product;
-  int quantity;
-  _CartEntry({required this.product, required this.quantity});
-}
-
 class _CartTile extends StatelessWidget {
-  final _CartEntry entry;
-  const _CartTile({required this.entry});
+  final CartItem item;
+  final VoidCallback onIncrease;
+  final VoidCallback onDecrease;
+  const _CartTile({required this.item, required this.onIncrease, required this.onDecrease});
 
   @override
   Widget build(BuildContext context) {
@@ -70,7 +85,7 @@ class _CartTile extends StatelessWidget {
         leading: ClipRRect(
           borderRadius: BorderRadius.circular(8),
           child: Image.asset(
-            entry.product.imagePath,
+            item.product.imagePath,
             width: 56,
             height: 56,
             fit: BoxFit.cover,
@@ -83,18 +98,28 @@ class _CartTile extends StatelessWidget {
           ),
         ),
         title: Text(
-          entry.product.name,
+          item.product.name,
           style: TextStyle(fontWeight: FontWeight.w600, color: Colors.grey.shade800),
         ),
-        subtitle: Text('Qty: ${entry.quantity} • Rp ${entry.product.price.toStringAsFixed(0)}'),
-        trailing: Text(
-          'Rp ${(entry.product.price * entry.quantity).toStringAsFixed(0)}',
-          style: const TextStyle(fontWeight: FontWeight.bold),
+        subtitle: Text('Rp ${item.product.price.toStringAsFixed(0)}'),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              icon: Icon(Icons.remove),
+              onPressed: onDecrease,
+            ),
+            Text('${item.quantity}'),
+            IconButton(
+              icon: Icon(Icons.add),
+              onPressed: onIncrease,
+            ),
+          ],
         ),
         onTap: () {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('${entry.product.name} • Qty ${entry.quantity}'),
+              content: Text('${item.product.name} • Qty ${item.quantity}'),
               duration: const Duration(milliseconds: 800),
             ),
           );
@@ -105,13 +130,13 @@ class _CartTile extends StatelessWidget {
 }
 
 class _CartSummary extends StatelessWidget {
-  final List<_CartEntry> entries;
+  final List<CartItem> items;
   final Color accentColor;
-  const _CartSummary({required this.entries, required this.accentColor});
+  const _CartSummary({required this.items, required this.accentColor});
 
   @override
   Widget build(BuildContext context) {
-    final double total = entries.fold(0.0, (sum, e) => sum + (e.product.price * e.quantity));
+    final double total = items.fold(0.0, (sum, item) => sum + (item.product.price * item.quantity));
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
       decoration: BoxDecoration(
@@ -137,7 +162,7 @@ class _CartSummary extends StatelessWidget {
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: accentColor, foregroundColor: Colors.white),
-            onPressed: entries.isEmpty ? null : () {},
+            onPressed: items.isEmpty ? null : () {},
             child: const Text('Checkout'),
           )
         ],
