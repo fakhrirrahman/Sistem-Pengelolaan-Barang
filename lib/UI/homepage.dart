@@ -9,6 +9,18 @@ import '../Models/food_product.dart';
 import 'cart_page.dart';
 import 'order_history_page.dart';
 
+Future<String?> getUserName(String uid) async {
+  DocumentSnapshot doc = await FirebaseFirestore.instance
+      .collection('users')
+      .doc(uid)
+      .get();
+
+  if (doc.exists) {
+    return doc['name'];
+  }
+  return null;
+}
+
 class HomePage extends StatefulWidget {
   HomePage({super.key});
 
@@ -20,6 +32,24 @@ class _HomePageState extends State<HomePage> {
   final User? user = FirebaseAuth.instance.currentUser;
   final Color darkBlue = Color(0xFF0D47A1);
   List<CartItem> cartItems = [];
+  String userName = 'Tidak Diketahui';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserName();
+  }
+
+  void _loadUserName() async {
+    if (user != null) {
+      String? name = await getUserName(user!.uid);
+      if (mounted) {
+        setState(() {
+          userName = name ?? 'Tidak Diketahui';
+        });
+      }
+    }
+  }
 
   void logout(BuildContext context) async {
     await AuthService.logout(context);
@@ -166,7 +196,7 @@ class _HomePageState extends State<HomePage> {
                     ),
                     SizedBox(height: 10),
                     Text(
-                      'Login sebagai: ${user?.email ?? 'Tidak Diketahui'}',
+                      'Selamat Datang: $userName',
                       style: TextStyle(
                         fontSize: 14,
                         color: Colors.white60,
