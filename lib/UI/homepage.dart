@@ -29,49 +29,36 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  static const _darkBlue = Color(0xFF0D47A1);
+  static const _defaultUserName = 'Tidak Diketahui';
+
   final User? user = FirebaseAuth.instance.currentUser;
-  final Color darkBlue = Color(0xFF0D47A1);
+  late String userName = _defaultUserName;
   List<CartItem> cartItems = [];
-  String userName = 'Tidak Diketahui';
 
   @override
   void initState() {
     super.initState();
-    _loadUserName();
-  }
-
-  void _loadUserName() async {
-    if (user != null) {
-      String? name = await getUserName(user!.uid);
-      if (mounted) {
-        setState(() {
-          userName = name ?? 'Tidak Diketahui';
-        });
-      }
+    if (user?.uid != null) {
+      getUserName(user!.uid).then(
+        (name) => mounted ? setState(() => userName = name ?? _defaultUserName) : null,
+      );
     }
   }
 
-  void logout(BuildContext context) async {
-    await AuthService.logout(context);
-  }
+  void logout(BuildContext context) => AuthService.logout(context);
 
   void addToCart(FoodProduct product) {
     setState(() {
-      final existingItem = cartItems.firstWhere(
-        (item) => item.product.id == product.id,
-        orElse: () => CartItem(product: product, quantity: 0),
-      );
-      if (existingItem.quantity == 0) {
-        cartItems.add(CartItem(product: product));
+      final index = cartItems.indexWhere((i) => i.product.id == product.id);
+      if (index >= 0) {
+        cartItems[index].quantity++;
       } else {
-        existingItem.quantity++;
+        cartItems.add(CartItem(product: product, quantity: 1));
       }
     });
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('${product.name} ditambahkan ke keranjang'),
-        duration: Duration(seconds: 2),
-      ),
+      SnackBar(content: Text('${product.name} ditambahkan ke keranjang')),
     );
   }
 
@@ -80,308 +67,200 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
-        title: Text('Toko Bahan Makanan'),
-        backgroundColor: darkBlue,
+        title: const Text('Toko Bahan Makanan'),
+        backgroundColor: _darkBlue,
         foregroundColor: Colors.white,
         elevation: 0,
         actions: [
-          IconButton(
-            icon: Stack(
-              children: [
-                Icon(Icons.shopping_cart),
-                if (cartItems.isNotEmpty)
-                  Positioned(
-                    right: 0,
-                    top: 0,
-                    child: Container(
-                      padding: EdgeInsets.all(2),
-                      decoration: BoxDecoration(
-                        color: Colors.red,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      constraints: BoxConstraints(
-                        minWidth: 16,
-                        minHeight: 16,
-                      ),
-                      child: Text(
-                        '${cartItems.length}',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => CartPage(
-                    items: cartItems,
-                    onUpdateCart: (updatedItems) {
-                      setState(() {
-                        cartItems = updatedItems;
-                      });
-                    },
-                  ),
-                ),
-              );
-            },
-          ),
-          IconButton(
-            icon: Icon(Icons.history),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const OrderHistoryPage()),
-              );
-            },
-          ),
-          IconButton(
-            icon: Icon(Icons.logout),
-            onPressed: () => logout(context),
-          ),
+          _CartButton(cartItems: cartItems, onPressed: _openCart),
+          _HistoryButton(onPressed: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const OrderHistoryPage()),
+          )),
+          IconButton(icon: const Icon(Icons.logout), onPressed: () => logout(context)),
         ],
       ),
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance.collection('products').snapshots(),
         builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          }
+          if (snapshot.hasError) return Center(child: Text('Error: ${snapshot.error}'));
+          if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
 
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
-          }
+          final products = snapshot.data!.docs
+              .map((doc) => FoodProduct.fromMap(doc.data() as Map<String, dynamic>, doc.id))
+              .toList();
 
-          final products = snapshot.data!.docs.map((doc) {
-            return FoodProduct.fromMap(doc.data() as Map<String, dynamic>, doc.id);
-          }).toList();
-
-          return Column(
-            children: [
-              
-              Container(
-                width: double.infinity,
-                padding: EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: darkBlue,
-                  borderRadius: BorderRadius.only(
-                    bottomLeft: Radius.circular(30),
-                    bottomRight: Radius.circular(30),
-                  ),
-                ),
+          return Column(children: [
+            _buildWelcomeSection(),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Selamat Datang!',
-                      style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                    SizedBox(height: 8),
-                    Text(
-                      'Temukan bahan makanan segar terbaik',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.white70,
-                      ),
-                    ),
-                    SizedBox(height: 10),
-                    Text(
-                      'Selamat Datang: $userName',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.white60,
+                    const Text('Produk Terbaru', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 16),
+                    Expanded(
+                      child: GridView.builder(
+                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          childAspectRatio: 0.72,
+                          crossAxisSpacing: 16,
+                          mainAxisSpacing: 16,
+                        ),
+                        itemCount: products.length,
+                        itemBuilder: (_, index) => _buildProductCard(products[index]),
                       ),
                     ),
                   ],
                 ),
               ),
-              
-              Expanded(
-                child: Padding(
-                  padding: EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Produk Terbaru',
-                        style: TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.grey.shade800,
-                        ),
-                      ),
-                      SizedBox(height: 16),
-                      Expanded(
-                        child: GridView.builder(
-                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            childAspectRatio: 0.72,
-                            crossAxisSpacing: 16,
-                            mainAxisSpacing: 16,
-                          ),
-                          itemCount: products.length,
-                          itemBuilder: (context, index) {
-                            final product = products[index];
-                            return _buildProductCard(product);
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          );
+            ),
+          ]);
         },
       ),
     );
   }
 
-  Widget _buildProductCard(FoodProduct product) {
-    return GestureDetector(
-      onTap: () => addToCart(product),
-      child: Card(
-        elevation: 4,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+  void _openCart() => Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (_) => CartPage(
+        items: cartItems,
+        onUpdateCart: (items) => setState(() => cartItems = items),
+      ),
+    ),
+  );
+
+  Widget _buildWelcomeSection() => Container(
+    width: double.infinity,
+    padding: const EdgeInsets.all(20),
+    decoration: BoxDecoration(
+      color: _darkBlue,
+      borderRadius: const BorderRadius.vertical(bottom: Radius.circular(30)),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Selamat Datang!', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white)),
+        const SizedBox(height: 8),
+        const Text('Temukan bahan makanan segar terbaik', style: TextStyle(fontSize: 16, color: Colors.white70)),
+        const SizedBox(height: 10),
+        Text('Selamat Datang: $userName', style: const TextStyle(fontSize: 14, color: Colors.white60)),
+      ],
+    ),
+  );
+
+  Widget _buildProductCard(FoodProduct product) => GestureDetector(
+    onTap: () => addToCart(product),
+    child: Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(flex: 3, child: _buildProductImage(product)),
+          Expanded(flex: 2, child: _buildProductInfo(product)),
+        ],
+      ),
+    ),
+  );
+
+  Widget _buildProductImage(FoodProduct product) => Container(
+    width: double.infinity,
+    decoration: BoxDecoration(
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+      color: Colors.grey.shade200,
+    ),
+    child: ClipRRect(
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+      child: _getImage(product),
+    ),
+  );
+
+  Widget _getImage(FoodProduct product) {
+    if (product.imagePath.isEmpty) return Image.asset('assets/images/beras.jpg', fit: BoxFit.cover, errorBuilder: _imageErrorBuilder);
+    if (product.imagePath.startsWith('http') || product.imagePath.startsWith('data:')) {
+      return Image.network(product.imagePath, fit: BoxFit.cover, errorBuilder: _imageErrorBuilder);
+    }
+    return Image.file(File(product.imagePath), fit: BoxFit.cover, errorBuilder: _imageErrorBuilder);
+  }
+
+  Widget _imageErrorBuilder(BuildContext context, Object error, StackTrace? trace) => Container(
+    color: Colors.grey.shade300,
+    child: Icon(Icons.image_not_supported, size: 50, color: Colors.grey.shade600),
+  );
+
+  Widget _buildProductInfo(FoodProduct product) => Padding(
+    padding: const EdgeInsets.all(12),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(product.name, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
+        const SizedBox(height: 4),
+        Text(product.category, style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+        const SizedBox(height: 8),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            // Product Image
-            Expanded(
-              flex: 3,
-              child: Container(
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-                  color: Colors.grey.shade200,
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-                  child: product.imagePath.isNotEmpty
-                      ? (product.imagePath.startsWith('http') || product.imagePath.startsWith('data:'))
-                          ? Image.network(
-                              product.imagePath,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) {
-                                return Container(
-                                  color: Colors.grey.shade300,
-                                  child: Icon(
-                                    Icons.image_not_supported,
-                                    size: 50,
-                                    color: Colors.grey.shade600,
-                                  ),
-                                );
-                              },
-                            )
-                          : Image.file(
-                              File(product.imagePath),
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) {
-                                return Container(
-                                  color: Colors.grey.shade300,
-                                  child: Icon(
-                                    Icons.image_not_supported,
-                                    size: 50,
-                                    color: Colors.grey.shade600,
-                                  ),
-                                );
-                              },
-                            )
-                      : Image.asset(
-                          'assets/images/beras.jpg',
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return Container(
-                              color: Colors.grey.shade300,
-                              child: Icon(
-                                Icons.image_not_supported,
-                                size: 50,
-                                color: Colors.grey.shade600,
-                              ),
-                            );
-                          },
-                        ),
-                ),
-              ),
-            ),
-            
-            Expanded(
-              flex: 2,
-              child: Padding(
-                padding: EdgeInsets.all(12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      product.name,
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.grey.shade800,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    SizedBox(height: 4),
-                    Text(
-                      product.category,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey.shade600,
-                      ),
-                    ),
-                    SizedBox(height: 8),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Rp ${product.price.toStringAsFixed(0)}',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: darkBlue,
-                          ),
-                        ),
-                        Container(
-                          padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: product.isAvailable 
-                                ? Colors.green.shade100 
-                                : Colors.red.shade100,
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            product.isAvailable ? 'Tersedia' : 'Habis',
-                            style: TextStyle(
-                              fontSize: 10,
-                              color: product.isAvailable 
-                                  ? Colors.green.shade700 
-                                  : Colors.red.shade700,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
+            Text('Rp ${product.price.toStringAsFixed(0)}', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: _darkBlue)),
+            _buildStatusBadge(product),
           ],
         ),
+      ],
+    ),
+  );
+
+  Widget _buildStatusBadge(FoodProduct product) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+    decoration: BoxDecoration(
+      color: product.isAvailable ? Colors.green.shade100 : Colors.red.shade100,
+      borderRadius: BorderRadius.circular(12),
+    ),
+    child: Text(
+      product.isAvailable ? 'Tersedia' : 'Habis',
+      style: TextStyle(
+        fontSize: 10,
+        color: product.isAvailable ? Colors.green.shade700 : Colors.red.shade700,
+        fontWeight: FontWeight.w600,
       ),
-    );
-  }
+    ),
+  );
+}
+
+class _CartButton extends StatelessWidget {
+  final List<CartItem> cartItems;
+  final VoidCallback onPressed;
+
+  const _CartButton({required this.cartItems, required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) => IconButton(
+    icon: Stack(
+      children: [
+        const Icon(Icons.shopping_cart),
+        if (cartItems.isNotEmpty)
+          Positioned(
+            right: 0,
+            top: 0,
+            child: Container(
+              padding: const EdgeInsets.all(2),
+              decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(10)),
+              constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+              child: Text('${cartItems.length}', style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
+            ),
+          ),
+      ],
+    ),
+    onPressed: onPressed,
+  );
+}
+
+class _HistoryButton extends StatelessWidget {
+  final VoidCallback onPressed;
+
+  const _HistoryButton({required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) => IconButton(icon: const Icon(Icons.history), onPressed: onPressed);
 }
