@@ -90,33 +90,33 @@ class _HomePageState extends State<HomePage> {
               .map((doc) => FoodProduct.fromMap(doc.data() as Map<String, dynamic>, doc.id))
               .toList();
 
-          return Column(children: [
-            _buildWelcomeSection(),
-            Expanded(
-              child: Padding(
+          return SingleChildScrollView(
+            child: Column(children: [
+              _buildWelcomeSection(),
+              Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text('Produk Terbaru', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 16),
-                    Expanded(
-                      child: GridView.builder(
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          childAspectRatio: 0.72,
-                          crossAxisSpacing: 16,
-                          mainAxisSpacing: 16,
-                        ),
-                        itemCount: products.length,
-                        itemBuilder: (_, index) => _buildProductCard(products[index]),
+                    GridView.builder(
+                      physics: const NeverScrollableScrollPhysics(),
+                      shrinkWrap: true,
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        childAspectRatio: 0.72,
+                        crossAxisSpacing: 12,
+                        mainAxisSpacing: 12,
                       ),
+                      itemCount: products.length,
+                      itemBuilder: (_, index) => _buildProductCard(products[index]),
                     ),
                   ],
                 ),
               ),
-            ),
-          ]);
+            ]),
+          );
         },
       ),
     );
