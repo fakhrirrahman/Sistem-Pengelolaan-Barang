@@ -137,14 +137,15 @@ class _HomePageState extends State<HomePage> {
     title: Row(
       children: [
         Container(
-          width: 40,
-          height: 40,
+          width: 44,
+          height: 44,
           decoration: BoxDecoration(
-            color: _accentOrange,
             borderRadius: BorderRadius.circular(12),
+            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 8)],
           ),
-          child: Center(
-            child: Text('SB', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Image.asset('assets/images/beras.jpg', fit: BoxFit.cover),
           ),
         ),
         const SizedBox(width: 12),
@@ -262,41 +263,33 @@ class _HomePageState extends State<HomePage> {
     child: Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          color: Colors.white,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Stack(
-              children: [
-                Expanded(flex: 2, child: _buildProductImage(product)),
-                Positioned(
-                  top: 8,
-                  right: 8,
-                  child: _buildStatusBadge(product),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Stack(
+            children: [
+              Container(
+                width: double.infinity,
+                height: 120,
+                decoration: BoxDecoration(
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                  color: Colors.grey.shade200,
                 ),
-              ],
-            ),
-            Expanded(flex: 1, child: _buildProductInfo(product)),
-          ],
-        ),
+                child: ClipRRect(
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                  child: _getImage(product),
+                ),
+              ),
+              Positioned(
+                top: 8,
+                right: 8,
+                child: _buildStatusBadge(product),
+              ),
+            ],
+          ),
+          Expanded(child: _buildProductInfo(product)),
+        ],
       ),
-    ),
-  );
-
-  Widget _buildProductImage(FoodProduct product) => Container(
-    width: double.infinity,
-    height: 120,
-    decoration: BoxDecoration(
-      borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-      color: Colors.grey.shade200,
-    ),
-    child: ClipRRect(
-      borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-      child: _getImage(product),
     ),
   );
 
