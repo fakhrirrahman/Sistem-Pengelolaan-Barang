@@ -29,12 +29,16 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  static const _darkBlue = Color(0xFF0D47A1);
+  static const _darkBlue = Color(0xFF1F3A70);
+  static const _accentOrange = Color(0xFFFFA500);
+  static const _lightBg = Color(0xFFF5F5F5);
   static const _defaultUserName = 'Tidak Diketahui';
 
   final User? user = FirebaseAuth.instance.currentUser;
   late String userName = _defaultUserName;
   List<CartItem> cartItems = [];
+  List<String> categories = ['Semua', 'Buah', 'Sayur', 'Biji-bijian', 'Bumbu'];
+  String selectedCategory = 'Semua';
 
   @override
   void initState() {
@@ -65,42 +69,46 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey.shade100,
-      appBar: AppBar(
-        title: const Text('Toko Bahan Makanan'),
-        backgroundColor: _darkBlue,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        actions: [
-          _CartButton(cartItems: cartItems, onPressed: _openCart),
-          _HistoryButton(onPressed: () => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const OrderHistoryPage()),
-          )),
-          IconButton(icon: const Icon(Icons.logout), onPressed: () => logout(context)),
-        ],
-      ),
+      backgroundColor: _lightBg,
+      appBar: _buildModernAppBar(),
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance.collection('products').snapshots(),
         builder: (context, snapshot) {
           if (snapshot.hasError) return Center(child: Text('Error: ${snapshot.error}'));
           if (snapshot.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
 
-          final products = snapshot.data!.docs
+          final allProducts = snapshot.data!.docs
               .map((doc) => FoodProduct.fromMap(doc.data() as Map<String, dynamic>, doc.id))
               .toList();
 
+          final products = selectedCategory == 'Semua' 
+              ? allProducts 
+              : allProducts.where((p) => p.category == selectedCategory).toList();
+
           return SingleChildScrollView(
             child: Column(children: [
-              _buildWelcomeSection(),
+              _buildHeroSection(),
+              _buildSearchBar(),
+              _buildCategoryFilter(),
               Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Produk Terbaru', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Produk Terbaru', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                        Text('${products.length} item', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
+                      ],
+                    ),
                     const SizedBox(height: 16),
-                    GridView.builder(
+                    products.isEmpty
+                        ? Center(child: Padding(
+                            padding: const EdgeInsets.all(32),
+                            child: Text('Tidak ada produk di kategori ini', style: TextStyle(color: Colors.grey.shade600)),
+                          ))
+                        : GridView.builder(
                       physics: const NeverScrollableScrollPhysics(),
                       shrinkWrap: true,
                       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -122,6 +130,121 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  PreferredSizeWidget _buildModernAppBar() => AppBar(
+    backgroundColor: _darkBlue,
+    foregroundColor: Colors.white,
+    elevation: 0,
+    title: Row(
+      children: [
+        Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: _accentOrange,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Center(
+            child: Text('SB', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
+          ),
+        ),
+        const SizedBox(width: 12),
+        const Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Toko Bahan', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+            Text('Segar Terbaik', style: TextStyle(fontSize: 11, color: Colors.white70)),
+          ],
+        ),
+      ],
+    ),
+    actions: [
+      _CartButton(cartItems: cartItems, onPressed: _openCart),
+      _HistoryButton(onPressed: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const OrderHistoryPage()),
+      )),
+      IconButton(icon: const Icon(Icons.logout), onPressed: () => logout(context)),
+    ],
+  );
+
+  Widget _buildHeroSection() => Container(
+    width: double.infinity,
+    padding: const EdgeInsets.fromLTRB(20, 20, 20, 30),
+    decoration: BoxDecoration(
+      gradient: LinearGradient(
+        colors: [_darkBlue, _darkBlue.withOpacity(0.9)],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      ),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Halo, $userName 👋', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white)),
+        const SizedBox(height: 8),
+        Text('Pesan kebutuhan dapur Anda', style: TextStyle(fontSize: 14, color: Colors.white.withOpacity(0.8))),
+      ],
+    ),
+  );
+
+  Widget _buildSearchBar() => Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+    child: Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 2)),
+        ],
+      ),
+      child: TextField(
+        decoration: InputDecoration(
+          hintText: 'Cari produk...',
+          hintStyle: TextStyle(color: Colors.grey.shade400),
+          prefixIcon: Icon(Icons.search, color: Colors.grey.shade400),
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(vertical: 14),
+        ),
+      ),
+    ),
+  );
+
+  Widget _buildCategoryFilter() => SingleChildScrollView(
+    scrollDirection: Axis.horizontal,
+    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+    child: Row(
+      children: categories.map((category) {
+        final isSelected = selectedCategory == category;
+        return GestureDetector(
+          onTap: () => setState(() => selectedCategory = category),
+          child: Container(
+            margin: const EdgeInsets.only(right: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              color: isSelected ? _accentOrange : Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: isSelected ? _accentOrange : Colors.grey.shade300,
+                width: 1,
+              ),
+              boxShadow: isSelected
+                  ? [BoxShadow(color: _accentOrange.withOpacity(0.3), blurRadius: 8)]
+                  : [],
+            ),
+            child: Text(
+              category,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: isSelected ? Colors.white : Colors.grey.shade700,
+              ),
+            ),
+          ),
+        );
+      }).toList(),
+    ),
+  );
+
   void _openCart() => Navigator.push(
     context,
     MaterialPageRoute(
@@ -132,42 +255,41 @@ class _HomePageState extends State<HomePage> {
     ),
   );
 
-  Widget _buildWelcomeSection() => Container(
-    width: double.infinity,
-    padding: const EdgeInsets.all(20),
-    decoration: BoxDecoration(
-      color: _darkBlue,
-      borderRadius: const BorderRadius.vertical(bottom: Radius.circular(30)),
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text('Selamat Datang!', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white)),
-        const SizedBox(height: 8),
-        const Text('Temukan bahan makanan segar terbaik', style: TextStyle(fontSize: 16, color: Colors.white70)),
-        const SizedBox(height: 10),
-        Text('Selamat Datang: $userName', style: const TextStyle(fontSize: 14, color: Colors.white60)),
-      ],
-    ),
-  );
+
 
   Widget _buildProductCard(FoodProduct product) => GestureDetector(
     onTap: () => addToCart(product),
     child: Card(
-      elevation: 4,
+      elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(flex: 2, child: _buildProductImage(product)),
-          Expanded(flex: 1, child: _buildProductInfo(product)),
-        ],
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          color: Colors.white,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Stack(
+              children: [
+                Expanded(flex: 2, child: _buildProductImage(product)),
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: _buildStatusBadge(product),
+                ),
+              ],
+            ),
+            Expanded(flex: 1, child: _buildProductInfo(product)),
+          ],
+        ),
       ),
     ),
   );
 
   Widget _buildProductImage(FoodProduct product) => Container(
     width: double.infinity,
+    height: 120,
     decoration: BoxDecoration(
       borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
       color: Colors.grey.shade200,
@@ -192,39 +314,30 @@ class _HomePageState extends State<HomePage> {
   );
 
   Widget _buildProductInfo(FoodProduct product) => Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(product.name, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
         Text(product.category, style: TextStyle(fontSize: 9, color: Colors.grey.shade600), maxLines: 1, overflow: TextOverflow.ellipsis),
-        const SizedBox(height: 2),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Flexible(
-              child: Text('Rp ${product.price.toStringAsFixed(0)}', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: _darkBlue), maxLines: 1, overflow: TextOverflow.ellipsis),
-            ),
-            const SizedBox(width: 2),
-            _buildStatusBadge(product),
-          ],
-        ),
+        const SizedBox(height: 4),
+        Text('Rp ${product.price.toStringAsFixed(0)}', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: _accentOrange)),
       ],
     ),
   );
 
   Widget _buildStatusBadge(FoodProduct product) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
     decoration: BoxDecoration(
-      color: product.isAvailable ? Colors.green.shade100 : Colors.red.shade100,
-      borderRadius: BorderRadius.circular(8),
+      color: product.isAvailable ? Colors.green : Colors.red,
+      borderRadius: BorderRadius.circular(20),
     ),
     child: Text(
       product.isAvailable ? 'Tersedia' : 'Habis',
-      style: TextStyle(
-        fontSize: 8,
-        color: product.isAvailable ? Colors.green.shade700 : Colors.red.shade700,
+      style: const TextStyle(
+        fontSize: 9,
+        color: Colors.white,
         fontWeight: FontWeight.w600,
       ),
     ),
