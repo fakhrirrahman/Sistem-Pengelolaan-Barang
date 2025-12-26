@@ -159,8 +159,8 @@ class _HomePageState extends State<HomePage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(flex: 3, child: _buildProductImage(product)),
-          Expanded(flex: 2, child: _buildProductInfo(product)),
+          Expanded(flex: 2, child: _buildProductImage(product)),
+          Expanded(flex: 1, child: _buildProductInfo(product)),
         ],
       ),
     ),
@@ -192,18 +192,21 @@ class _HomePageState extends State<HomePage> {
   );
 
   Widget _buildProductInfo(FoodProduct product) => Padding(
-    padding: const EdgeInsets.all(12),
+    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Text(product.name, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
-        const SizedBox(height: 4),
-        Text(product.category, style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
-        const SizedBox(height: 8),
+        Text(product.name, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold), maxLines: 1, overflow: TextOverflow.ellipsis),
+        Text(product.category, style: TextStyle(fontSize: 9, color: Colors.grey.shade600), maxLines: 1, overflow: TextOverflow.ellipsis),
+        const SizedBox(height: 2),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text('Rp ${product.price.toStringAsFixed(0)}', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: _darkBlue)),
+            Flexible(
+              child: Text('Rp ${product.price.toStringAsFixed(0)}', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: _darkBlue), maxLines: 1, overflow: TextOverflow.ellipsis),
+            ),
+            const SizedBox(width: 2),
             _buildStatusBadge(product),
           ],
         ),
@@ -212,15 +215,15 @@ class _HomePageState extends State<HomePage> {
   );
 
   Widget _buildStatusBadge(FoodProduct product) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
     decoration: BoxDecoration(
       color: product.isAvailable ? Colors.green.shade100 : Colors.red.shade100,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(8),
     ),
     child: Text(
       product.isAvailable ? 'Tersedia' : 'Habis',
       style: TextStyle(
-        fontSize: 10,
+        fontSize: 8,
         color: product.isAvailable ? Colors.green.shade700 : Colors.red.shade700,
         fontWeight: FontWeight.w600,
       ),
