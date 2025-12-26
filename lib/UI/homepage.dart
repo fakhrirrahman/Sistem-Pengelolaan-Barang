@@ -39,15 +39,24 @@ class _HomePageState extends State<HomePage> {
   List<CartItem> cartItems = [];
   List<String> categories = ['Semua', 'Buah', 'Sayur', 'Biji-bijian', 'Bumbu'];
   String selectedCategory = 'Semua';
+  late TextEditingController searchController;
+  String activeSearchQuery = '';
 
   @override
   void initState() {
     super.initState();
+    searchController = TextEditingController();
     if (user?.uid != null) {
       getUserName(user!.uid).then(
         (name) => mounted ? setState(() => userName = name ?? _defaultUserName) : null,
       );
     }
+  }
+
+  @override
+  void dispose() {
+    searchController.dispose();
+    super.dispose();
   }
 
   void logout(BuildContext context) => AuthService.logout(context);
@@ -81,9 +90,20 @@ class _HomePageState extends State<HomePage> {
               .map((doc) => FoodProduct.fromMap(doc.data() as Map<String, dynamic>, doc.id))
               .toList();
 
-          final products = selectedCategory == 'Semua' 
-              ? allProducts 
-              : allProducts.where((p) => p.category == selectedCategory).toList();
+          var products = allProducts;
+          
+          // Filter berdasarkan kategori
+          if (selectedCategory != 'Semua') {
+            products = products.where((p) => p.category == selectedCategory).toList();
+          }
+          
+          // Filter berdasarkan search query
+          if (activeSearchQuery.isNotEmpty) {
+            products = products.where((p) => 
+              p.name.toLowerCase().contains(activeSearchQuery.toLowerCase()) ||
+              p.category.toLowerCase().contains(activeSearchQuery.toLowerCase())
+            ).toList();
+          }
 
           return SingleChildScrollView(
             child: Column(children: [
@@ -198,13 +218,53 @@ class _HomePageState extends State<HomePage> {
           BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 2)),
         ],
       ),
-      child: TextField(
-        decoration: InputDecoration(
-          hintText: 'Cari produk...',
-          hintStyle: TextStyle(color: Colors.grey.shade400),
-          prefixIcon: Icon(Icons.search, color: Colors.grey.shade400),
-          border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(vertical: 14),
+      child: StatefulBuilder(
+        builder: (context, setStateSearch) => Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: searchController,
+                onChanged: (value) {
+                  setStateSearch(() {});
+                },
+                onSubmitted: (value) {
+                  setState(() {
+                    activeSearchQuery = searchController.text;
+                  });
+                },
+                decoration: InputDecoration(
+                  hintText: 'Cari produk atau kategori...',
+                  hintStyle: TextStyle(color: Colors.grey.shade400),
+                  prefixIcon: Icon(Icons.search, color: _accentOrange),
+                  suffixIcon: searchController.text.isNotEmpty
+                      ? GestureDetector(
+                          onTap: () {
+                            searchController.clear();
+                            setStateSearch(() {});
+                            setState(() {
+                              activeSearchQuery = '';
+                            });
+                          },
+                          child: Icon(Icons.close, color: Colors.grey.shade400),
+                        )
+                      : null,
+                  border: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 14, horizontal: 4),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: IconButton(
+                icon: Icon(Icons.search, color: _accentOrange, size: 24),
+                onPressed: () {
+                  setState(() {
+                    activeSearchQuery = searchController.text;
+                  });
+                },
+              ),
+            ),
+          ],
         ),
       ),
     ),
