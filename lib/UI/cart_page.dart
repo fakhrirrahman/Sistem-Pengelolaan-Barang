@@ -7,10 +7,9 @@ import '../Models/order.dart';
 
 class CartPage extends StatefulWidget {
   final List<CartItem> items;
-  final Color accentColor;
   final Function(List<CartItem>) onUpdateCart;
 
-  const CartPage({super.key, required this.items, this.accentColor = const Color(0xFF0D47A1), required this.onUpdateCart});
+  const CartPage({super.key, required this.items, required this.onUpdateCart});
 
   @override
   _CartPageState createState() => _CartPageState();
@@ -18,6 +17,9 @@ class CartPage extends StatefulWidget {
 
 class _CartPageState extends State<CartPage> {
   late List<CartItem> cartItems;
+  static const _darkBlue = Color(0xFF1F3A70);
+  static const _accentOrange = Color(0xFFFFA500);
+  static const _lightBg = Color(0xFFF5F5F5);
 
   @override
   void initState() {
@@ -82,11 +84,35 @@ class _CartPageState extends State<CartPage> {
   Widget build(BuildContext context) {
 
     return Scaffold(
+      backgroundColor: _lightBg,
       appBar: AppBar(
-        title: const Text('Keranjang'),
-        backgroundColor: widget.accentColor,
+        backgroundColor: _darkBlue,
         foregroundColor: Colors.white,
         elevation: 0,
+        title: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(10),
+                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 8)],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: Image.asset('assets/images/beras.jpg', fit: BoxFit.cover),
+              ),
+            ),
+            const SizedBox(width: 12),
+            const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Keranjang', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                Text('Pesanan Anda', style: TextStyle(fontSize: 11, color: Colors.white70)),
+              ],
+            ),
+          ],
+        ),
       ),
       body: cartItems.isEmpty
           ? const _EmptyCart()
@@ -103,7 +129,7 @@ class _CartPageState extends State<CartPage> {
                 );
               },
             ),
-      bottomNavigationBar: _CartSummary(items: cartItems, accentColor: widget.accentColor, onCheckout: checkout),
+      bottomNavigationBar: _CartSummary(items: cartItems, onCheckout: checkout),
     );
   }
 }
@@ -112,6 +138,8 @@ class _CartTile extends StatelessWidget {
   final CartItem item;
   final VoidCallback onIncrease;
   final VoidCallback onDecrease;
+  static const _accentOrange = Color(0xFFFFA500);
+  
   const _CartTile({required this.item, required this.onIncrease, required this.onDecrease});
 
   @override
@@ -119,7 +147,7 @@ class _CartTile extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
@@ -128,93 +156,131 @@ class _CartTile extends StatelessWidget {
           ),
         ],
       ),
-      child: ListTile(
-        leading: ClipRRect(
-          borderRadius: BorderRadius.circular(8),
-          child: item.product.imagePath.isNotEmpty
-              ? (item.product.imagePath.startsWith('http') || item.product.imagePath.startsWith('data:'))
-                  ? Image.network(
-                      item.product.imagePath,
-                      width: 56,
-                      height: 56,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
-                          width: 56,
-                          height: 56,
-                          color: Colors.grey.shade300,
-                          child: Icon(
-                            Icons.image_not_supported,
-                            size: 28,
-                            color: Colors.grey.shade600,
-                          ),
-                        );
-                      },
-                    )
-                  : Image.file(
-                      File(item.product.imagePath),
-                      width: 56,
-                      height: 56,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
-                          width: 56,
-                          height: 56,
-                          color: Colors.grey.shade300,
-                          child: Icon(
-                            Icons.image_not_supported,
-                            size: 28,
-                            color: Colors.grey.shade600,
-                          ),
-                        );
-                      },
-                    )
-              : Image.asset(
-                  'assets/images/beras.jpg',
-                  width: 56,
-                  height: 56,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      width: 56,
-                      height: 56,
-                      color: Colors.grey.shade300,
-                      child: Icon(
-                        Icons.image_not_supported,
-                        size: 28,
-                        color: Colors.grey.shade600,
-                      ),
-                    );
-                  },
-                ),
-        ),
-        title: Text(
-          item.product.name,
-          style: TextStyle(fontWeight: FontWeight.w600, color: Colors.grey.shade800),
-        ),
-        subtitle: Text('Rp ${item.product.price.toStringAsFixed(0)}'),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
           children: [
-            IconButton(
-              icon: Icon(Icons.remove),
-              onPressed: onDecrease,
+            ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: item.product.imagePath.isNotEmpty
+                  ? (item.product.imagePath.startsWith('http') || item.product.imagePath.startsWith('data:'))
+                      ? Image.network(
+                          item.product.imagePath,
+                          width: 70,
+                          height: 70,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              width: 70,
+                              height: 70,
+                              color: Colors.grey.shade300,
+                              child: Icon(
+                                Icons.image_not_supported,
+                                size: 32,
+                                color: Colors.grey.shade600,
+                              ),
+                            );
+                          },
+                        )
+                      : Image.file(
+                          File(item.product.imagePath),
+                          width: 70,
+                          height: 70,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              width: 70,
+                              height: 70,
+                              color: Colors.grey.shade300,
+                              child: Icon(
+                                Icons.image_not_supported,
+                                size: 32,
+                                color: Colors.grey.shade600,
+                              ),
+                            );
+                          },
+                        )
+                  : Image.asset(
+                      'assets/images/beras.jpg',
+                      width: 70,
+                      height: 70,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          width: 70,
+                          height: 70,
+                          color: Colors.grey.shade300,
+                          child: Icon(
+                            Icons.image_not_supported,
+                            size: 32,
+                            color: Colors.grey.shade600,
+                          ),
+                        );
+                      },
+                    ),
             ),
-            Text('${item.quantity}'),
-            IconButton(
-              icon: Icon(Icons.add),
-              onPressed: onIncrease,
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item.product.name,
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    item.product.category,
+                    style: TextStyle(fontSize: 11, color: Colors.grey.shade600),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Rp ${item.product.price.toStringAsFixed(0)}',
+                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: _accentOrange),
+                  ),
+                ],
+              ),
+            ),
+            Column(
+              children: [
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      InkWell(
+                        onTap: onDecrease,
+                        child: Padding(
+                          padding: const EdgeInsets.all(6),
+                          child: Icon(Icons.remove, size: 16, color: Colors.grey.shade600),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        child: Text('${item.quantity}', style: const TextStyle(fontWeight: FontWeight.bold)),
+                      ),
+                      InkWell(
+                        onTap: onIncrease,
+                        child: Padding(
+                          padding: const EdgeInsets.all(6),
+                          child: Icon(Icons.add, size: 16, color: _accentOrange),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Rp ${(item.product.price * item.quantity).toStringAsFixed(0)}',
+                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                ),
+              ],
             ),
           ],
         ),
-        onTap: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('${item.product.name} • Qty ${item.quantity}'),
-              duration: const Duration(milliseconds: 800),
-            ),
-          );
-        },
       ),
     );
   }
@@ -222,9 +288,11 @@ class _CartTile extends StatelessWidget {
 
 class _CartSummary extends StatelessWidget {
   final List<CartItem> items;
-  final Color accentColor;
   final VoidCallback onCheckout;
-  const _CartSummary({required this.items, required this.accentColor, required this.onCheckout});
+  static const _darkBlue = Color(0xFF1F3A70);
+  static const _accentOrange = Color(0xFFFFA500);
+  
+  const _CartSummary({required this.items, required this.onCheckout});
 
   @override
   Widget build(BuildContext context) {
@@ -244,18 +312,23 @@ class _CartSummary extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text('Total', style: TextStyle(color: Colors.grey)),
+                Text('Total Pembayaran', style: TextStyle(fontSize: 12, color: Colors.grey.shade600)),
                 Text(
                   'Rp ${total.toStringAsFixed(0)}',
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: _accentOrange),
                 ),
               ],
             ),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: accentColor, foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _accentOrange,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
             onPressed: items.isEmpty ? null : onCheckout,
-            child: const Text('Checkout'),
+            child: const Text('Checkout', style: TextStyle(fontWeight: FontWeight.bold)),
           )
         ],
       ),
